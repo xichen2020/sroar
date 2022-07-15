@@ -88,9 +88,9 @@ func BenchmarkSetRoaring(b *testing.B) {
 }
 
 func BenchmarkMerge10K(b *testing.B) {
-	var bitmaps []*Bitmap
+	var bitmaps []Bitmap
 	for i := 0; i < 10000; i++ {
-		bm := NewBitmap()
+		bm := *NewBitmap()
 		for j := 0; j < 1000; j++ {
 			x := rand.Uint64() % 1e8 // 10M.
 			bm.Set(x)
@@ -98,8 +98,8 @@ func BenchmarkMerge10K(b *testing.B) {
 		bitmaps = append(bitmaps, bm)
 	}
 
-	second := func() *Bitmap {
-		var res []*Bitmap
+	second := func() Bitmap {
+		var res []Bitmap
 		for i := 0; i < 100; i += 1 {
 			input := bitmaps[100*i : 100*i+100]
 			out := FastOr(input...)
@@ -109,7 +109,7 @@ func BenchmarkMerge10K(b *testing.B) {
 	}
 
 	out := FastOr(bitmaps...)
-	b.Logf("Out: %s\n", out)
+	b.Logf("Out: %s\n", out.String())
 	out2 := second()
 	if out2.GetCardinality() != out.GetCardinality() {
 		panic("Don't match")

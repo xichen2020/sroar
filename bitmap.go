@@ -886,14 +886,14 @@ func (ra *Bitmap) AndNot(bm *Bitmap) {
 }
 
 // TODO: Check if we want to use lazyMode
-func (dst *Bitmap) Or(src *Bitmap) {
-	if src == nil {
+func (dst *Bitmap) Or(src Bitmap) {
+	if src.IsEmpty() {
 		return
 	}
 	dst.or(src, runInline)
 }
 
-func (dst *Bitmap) or(src *Bitmap, runMode int) {
+func (dst *Bitmap) or(src Bitmap, runMode int) {
 	srcIdx, numKeys := 0, src.keys.numKeys()
 
 	buf := make([]uint16, maxContainerSize)
@@ -1106,17 +1106,17 @@ func FastAnd(bitmaps ...*Bitmap) *Bitmap {
 //
 // Experiments with numGo=4 shows that FastParOr would be 2x the speed of
 // FastOr, but 4x the memory usage, even under 50% CPU usage. So, use wisely.
-func FastParOr(numGo int, bitmaps ...*Bitmap) *Bitmap {
+func FastParOr(numGo int, bitmaps ...Bitmap) Bitmap {
 	if numGo == 1 {
 		return FastOr(bitmaps...)
 	}
 	width := max(len(bitmaps)/numGo, 3)
 
 	var wg sync.WaitGroup
-	var res []*Bitmap
+	var res []Bitmap
 	for start := 0; start < len(bitmaps); start += width {
 		end := min(start+width, len(bitmaps))
-		res = append(res, nil) // Make space for result.
+		res = append(res, Bitmap{}) // Make space for result.
 		wg.Add(1)
 
 		go func(start, end int) {
@@ -1131,9 +1131,9 @@ func FastParOr(numGo int, bitmaps ...*Bitmap) *Bitmap {
 
 // FastOr would merge given Bitmaps into one Bitmap. This is faster than
 // doing an OR over the bitmaps iteratively.
-func FastOr(bitmaps ...*Bitmap) *Bitmap {
+func FastOr(bitmaps ...Bitmap) Bitmap {
 	if len(bitmaps) == 0 {
-		return NewBitmap()
+		return *NewBitmap()
 	}
 	if len(bitmaps) == 1 {
 		return bitmaps[0]
@@ -1207,7 +1207,7 @@ func FastOr(bitmaps ...*Bitmap) *Bitmap {
 		}
 	}
 
-	return dst
+	return *dst
 }
 
 // Split splits the bitmap based on maxSz and the externalSize function. It splits the bitmap
