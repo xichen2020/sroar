@@ -1,4 +1,4 @@
-module github.com/dgraph-io/sroar
+module github.com/xichen2020/sroar
 
 go 1.16
 
