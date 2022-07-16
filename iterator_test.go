@@ -27,17 +27,17 @@ import (
 func TestIteratorBasic(t *testing.T) {
 	n := uint64(1e5)
 	bm := NewBitmap()
-	for i := uint64(1); i <= n; i++ {
+	for i := uint64(0); i < n; i++ {
 		bm.Set(uint64(i))
 	}
 
+	var curr uint64
 	it := bm.NewIterator()
-	for i := uint64(1); i <= n; i++ {
-		v := it.Next()
-		require.Equal(t, i, v)
+	for v, ok := it.Next(); ok; v, ok = it.Next() {
+		require.Equal(t, curr, v)
+		curr++
 	}
-	v := it.Next()
-	require.Equal(t, uint64(0), v)
+	require.Equal(t, n, curr)
 }
 
 func TestIteratorRanges(t *testing.T) {
@@ -51,7 +51,7 @@ func TestIteratorRanges(t *testing.T) {
 	cnt := uint64(1)
 	for idx := 0; idx < 8; idx++ {
 		it := iters[idx]
-		for v := it.Next(); v > 0; v = it.Next() {
+		for v, ok := it.Next(); ok; v, ok = it.Next() {
 			require.Equal(t, cnt, v)
 			cnt++
 		}
@@ -65,9 +65,6 @@ func TestIteratorRandom(t *testing.T) {
 	var arr []uint64
 	for i := uint64(1); i <= n; i++ {
 		v := uint64(rand.Intn(int(n) * 5))
-		if v == 0 {
-			continue
-		}
 		if _, ok := mp[v]; ok {
 			continue
 		}
@@ -81,11 +78,13 @@ func TestIteratorRandom(t *testing.T) {
 	})
 
 	it := bm.NewIterator()
-	v := it.Next()
 	for i := uint64(0); i < uint64(len(arr)); i++ {
+		v, ok := it.Next()
+		require.True(t, ok)
 		require.Equal(t, arr[i], v)
-		v = it.Next()
 	}
+	_, ok := it.Next()
+	require.False(t, ok)
 }
 
 func TestIteratorWithRemoveKeys(t *testing.T) {
@@ -99,7 +98,7 @@ func TestIteratorWithRemoveKeys(t *testing.T) {
 	it := b.NewIterator()
 
 	cnt := 0
-	for it.Next() > 0 {
+	for _, ok := it.Next(); ok; _, ok = it.Next() {
 		cnt++
 	}
 	require.Equal(t, 0, cnt)
@@ -135,7 +134,7 @@ func BenchmarkIterator(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		it := bm.NewIterator()
-		for it.Next() > 0 {
+		for _, ok := it.Next(); ok; _, ok = it.Next() {
 		}
 	}
 }
